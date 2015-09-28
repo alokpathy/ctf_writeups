@@ -94,7 +94,7 @@ int __cdecl main(int argc, const char **argv, const char **envp)
 }
 ```
 
-Lots of C++ to go through. It seems that ```s``` is our input since there is an ```fgets``` that pulls at most 257 bytes from ```stdin``` into ```s```. The program also copies our input from ```s``` to ```v7``` and passes a pointer to ```v7``` to a function called ```start_quest```. Before we go into that function, what do we want the function to return? The result of ```start_quest``` is stored in ```v3```, which is then compared again 4919. If it equal to 4919, the function ```reward_strength``` is called. Else, it is not. Just by the name, ```reward_strength``` seems like a fairly intersting function. Let's take a look at that.
+Lots of C++ to go through. It seems that ```s``` is our input since there is an ```fgets``` that pulls at most 257 bytes from ```stdin``` into ```s```. The program also copies our input from ```s``` to ```v7``` and passes a pointer to ```v7``` to a function called ```start_quest```. Before we go into that function, what do we want the function to return? The result of ```start_quest``` is stored in ```v3```, which is then compared again 4919. If it is equal to 4919, the function ```reward_strength``` is called. Else, it is not. Just by the name, ```reward_strength``` seems like a fairly intersting function. Let's take a look at that.
 
 ```c
 __int64 __fastcall reward_strength(unsigned __int64 a1)
