@@ -406,8 +406,8 @@ LABEL_91:
     while ( !v34 ); // is false.
     while ( y4 >= 10 && (((_BYTE)x3 - 1) * (_BYTE)x3 & 1) != 0 ) // is false.
       ;
-    LODWORD(v1) = std::string::operator[](v48, v35); // first character of input packed into v1.
-    v33 = v1;                                        // first character of input packed into v33.
+    LODWORD(v1) = std::string::operator[](v48, v35); // ith character of input packed into v1.
+    v33 = v1;                                        // ith character of input packed into v33.
     if ( y18 >= 10 && (((_BYTE)x17 - 1) * (_BYTE)x17 & 1) != 0 ) // we don't go through here.
     {
 LABEL_71:
@@ -464,14 +464,14 @@ LABEL_75:
       do
         v26 = *(_DWORD *)v43; // v26 is 0
       while ( y18 >= 10 && (((_BYTE)x17 - 1) * (_BYTE)x17 & 1) != 0 ); // false.
-      v25 = std::vector<int,std::allocator<int>>::operator[](6357752LL, v26); // pointer to allocation.
+      v25 = std::vector<int,std::allocator<int>>::operator[](6357752LL, v26);
       do
         v24 = y18 < 10 || (((_BYTE)x17 - 1) * (_BYTE)x17 & 1) == 0; // v24 is 1.
       while ( y4 >= 10 && (((_BYTE)x3 - 1) * (_BYTE)x3 & 1) != 0 );
       do
         v23 = *(_DWORD *)v25; // v23 is pointer to allocation.
       while ( y18 >= 10 && (((_BYTE)x17 - 1) * (_BYTE)x17 & 1) != 0 );
-      std::vector<int,std::allocator<int>>::vector(v38, v44);
+      std::vector<int,std::allocator<int>>::vector(v38, v44); // v38 is now ith character of input. 
       do
         v22 = y18 < 10 || (((_BYTE)x17 - 1) * (_BYTE)x17 & 1) == 0;
       while ( y4 >= 10 && (((_BYTE)x3 - 1) * (_BYTE)x3 & 1) != 0 );
@@ -479,7 +479,7 @@ LABEL_75:
         ;
       while ( y4 >= 10 && (((_BYTE)x3 - 1) * (_BYTE)x3 & 1) != 0 )
         ;
-      v21 = transform_input(v38); // v21 is ???
+      v21 = transform_input(v38); // v21 is result of transform_input on ith character of input.
       if ( y18 >= 10 && (((_BYTE)x17 - 1) * (_BYTE)x17 & 1) != 0 ) // not gone through.
         goto LABEL_79;
       while ( 1 )
@@ -592,10 +592,45 @@ LABEL_92:
     ;
   return v9;
 }
-
 ```
 
 This looks like a monstrous function. But, remember what we mentioned earlier about bogus control flow? Stepping through this function will show that a lot of ```sanitize_input``` is completely useless. You can look at the comments I have on the side of many lines here to get the idea of the flow.
 
 
+Something interesting comes up. It seems like ```sanitize_input``` iterates over every character int he input. It then calls ```transform_input``` on each each character. If ```transform_input``` returns a particular value, then the function stops. If it returns a different value, then we continue to the next character by going back to the beginning of the ```while``` loop. Even more interesting is ```v37``` increments every time we go back to the beginning of the ```while```, and when it reaches 28 (the length of our input), it sets the value pointed to by ```v45``` as 4919. Later on, ```v9``` is set to dereferenced ```v45```, which is then returned. 
 
+So we want to go back to the beginning of the ```while``` loop for each character in the input. To do this, ```transform_input``` must return the correct value for each character in the input. This must mean that ```transform_input``` validates each character in the password by some metric. Thus, ```sanitize_input``` is essentially an obfuscated version of the following:
+
+```c
+int sanitize_input(char* input) {
+    int i;
+    for (i = 0; i < 28; i++) {
+        // assumes WLOG that transform_input returns 0
+        // when input[i] is incorrect.
+        if (!transform_input(input[i])) {
+            return 0; 
+        }
+    }
+    return 4919;
+}
+```
+Now, one solution is to obviously look into ```transform_input``` and see what exactly it does. This is a completely valid solution, and I've seen many people go this route (it ends up using some simple rule). But, ```transform_input``` is also obfuscated, and I'm sick of going through so much obfuscated code. There must be a better way.
+
+And there is. Observe that when the first character of the input is correct, far more instructions are executed than when it is incorrect. This is because when the first character is incorrect, ```sanitize_input``` simply returns, but when the first character is correct, it jumps to the beginning of the for loop, increments ```i```, and makes another comparison. Thus, if we input "a" + "A"*28, "b" + "A"*28 to ```sanitize_input``` and count the number of instructions the function makes, whichever input makes ```sanitize_input``` make a substantial number of instructions likely has the correct first byte. This can be extended so we can get the first, second, third, ..., and twenty-eighth character of the input easily. Once we have all these characters, we have the password. And we win.
+
+Normally I'd use a tool like [Intel Pin](https://software.intel.com/en-us/articles/pin-a-dynamic-binary-instrumentation-tool) for instruction counting. However, I could not get this to install easily (Fedora did some things with GCC's C++ ABI). So, I simply just added a breakpoint at the beginning of the ```for``` loop and counted how many times the breakpoint was hit. This still works, but it just takes a much longer time (O(n^2) really). In any case, we still get the flag: ```dr4g0n_or_p4tric1an_it5_LLVM```.
+
+```bash
+ [alokpathy@lawn-143-215-63-181 2015]$ ./wyvern 
++-----------------------+
+|    Welcome Hero       |
++-----------------------+
+
+[!] Quest: there is a dragon prowling the domain.
+    brute strength and magic is our only hope. Test your skill.
+
+Enter the dragon's secret: dr4g0n_or_p4tric1an_it5_LLVM
+success
+
+[+] A great success! Here is a flag{dr4g0n_or_p4tric1an_it5_LLVM}
+```
