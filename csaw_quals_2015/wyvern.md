@@ -9,7 +9,7 @@ Points:   500
 **Description:**
 >*There's a dragon afoot, we need a hero. Give us the dragon's secret and we'll give you a flag.*
 >
->*[wyvern_c85f1be480808a9da350faaa6104a19b](challenge/contacts)*
+>*[wyvern_c85f1be480808a9da350faaa6104a19b](challenge/wyvern)*
 
 ## Writeup
 
